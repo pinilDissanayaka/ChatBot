@@ -1,6 +1,4 @@
 from typing import Literal
-from django import conf
-from langchain import hub
 from langchain_core.messages import HumanMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
@@ -9,7 +7,7 @@ from langgraph.prebuilt import tools_condition
 from langgraph.graph import END, StateGraph, START
 from langgraph.prebuilt import ToolNode
 from agent.tools.retriever_tool import get_retriever
-from utils import AgentState, llm
+from utils import AgentState, llm, agent_prompt_template, generate_prompt_template
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
@@ -97,17 +95,7 @@ def build_graph(vector_store_path, web_name):
         print("---CALL AGENT---")
         
         
-        agent_prompt = ChatPromptTemplate.from_messages([
-            ("system", 
-                "You are **Friday**, an intelligent and friendly AI assistant. "
-                "Adapt your responses to the user's language and maintain a conversational tone. "
-                "Use the following retrieved context to answer questions accurately. "
-                "If you don't know the answer, say that you don't know. "
-                "Keep responses concise, engaging, and within three sentences. "
-                "If the user is informal, match their style; if formal, do the same."
-            ),
-            ("human", "Question: {question}")
-        ])
+        agent_prompt = ChatPromptTemplate.from_messages(agent_prompt_template)
         
         
         messages = state["messages"]
@@ -115,7 +103,7 @@ def build_graph(vector_store_path, web_name):
         model = llm.bind_tools(tools)
         
         agent_chain = (
-            {"question": RunnablePassthrough()} |
+            {"QUESTION": RunnablePassthrough()} |
             agent_prompt |
             model
         )
@@ -143,14 +131,14 @@ def build_graph(vector_store_path, web_name):
         msg = [
             HumanMessage(
                 content=f""" \n 
-        Look at the input and try to reason about the underlying semantic intent / meaning. \n 
-        Here is the initial question:
-        \n ------- \n
-        {question} 
-        \n ------- \n
-        Formulate an improved question: """,
-            )
-        ]
+                    Look at the input and try to reason about the underlying semantic intent / meaning. \n 
+                    Here is the initial question:
+                    \n ------- \n
+                    {question} 
+                    \n ------- \n
+                    Formulate an improved question: """,
+                )
+    ]
 
         # Grader
         response = llm.invoke(msg)
@@ -175,22 +163,9 @@ def build_graph(vector_store_path, web_name):
         docs = last_message.content
 
         # Prompt
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", 
-                "You are **Friday**, an intelligent and friendly AI assistant. "
-                "Adapt your responses to the user's language and maintain a conversational tone. "
-                "Use the following retrieved context to answer questions accurately. "
-                "If you don't know the answer, say that you don't know. "
-                "Keep responses concise, engaging, and within three sentences. "
-                "If the user is informal, match their style; if formal, do the same."
-            ),
-            ("human", "Question: {question}\nContext: {context}")
-        ])
+        from langchain.prompts import ChatPromptTemplate
 
-
-        # Post-processing
-        def format_docs(docs):
-            return "\n\n".join(doc.page_content for doc in docs)
+        prompt = ChatPromptTemplate.from_messages(generate_prompt_template)
 
         # Chain
         rag_chain = prompt | llm | StrOutputParser()
