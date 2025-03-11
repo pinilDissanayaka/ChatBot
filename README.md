@@ -6,7 +6,7 @@ A dynamic AI chatbot capable of retrieving, rewriting, and generating responses,
 
 ![download](https://github.com/user-attachments/assets/71146814-fc46-4665-896c-82d2647d81e3)
 
-# How It Works:
+# How It Works
 - agent: Central brain that drives the conversation flow and makes decisions.
 - retrieve: Gathers relevant information, either from knowledge bases or connected tools.
 - rewrite: Refines the retrieved content to make it contextually appropriate.
@@ -21,7 +21,7 @@ A dynamic AI chatbot capable of retrieving, rewriting, and generating responses,
 - 🗄️ Database Access: Fetch user-specific or context-aware data during conversation.
 
 
-# Tools:
+# Tools
 - 📬 Email Service: Dynamic email composition and delivery.
 - 🗃️ Database Service: Real-time data querying and fetching.
 - 🛠️ More tools can be added easily via plugin-style interface.
