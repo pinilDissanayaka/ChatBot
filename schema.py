@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 class ChatRequest(BaseModel):
-    id: str = "1"
+    thread_id: str = "1"
     message: str = "Hello"
     
 

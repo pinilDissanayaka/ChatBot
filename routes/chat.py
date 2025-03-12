@@ -14,7 +14,7 @@ chat_router = APIRouter(
 async def chat(request: ChatRequest):
     try:
         graph=build_graph(vector_store_path=vector_store_path, web_name=web_name)
-        final_response=await get_chat_response(graph=graph, question=request.message, thread_id=request.id)
+        final_response=await get_chat_response(graph=graph, question=request.message, thread_id=request.thread_id)
 
         return ChatResponse(
             response=final_response
