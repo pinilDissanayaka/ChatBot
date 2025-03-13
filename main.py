@@ -3,12 +3,19 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from dotenv import load_dotenv, find_dotenv
 from routes.chat import chat_router
+from routes.files import file_upload_router
+
+
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
 
 
 app = FastAPI()
 
 
 app.include_router(chat_router)
+app.include_router(file_upload_router)
 
 # Add CORS middleware
 app.add_middleware(
@@ -28,7 +35,8 @@ async def health_check():
 
 if __name__ == "__main__":
     load_dotenv(find_dotenv())
-    uvicorn.run(app, port=8080)
+    uvicorn.run(app, port=8070)
+    
     
     
     

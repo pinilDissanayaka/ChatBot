@@ -2,7 +2,7 @@ import smtplib
 
 def contact(senders_email:str, message:str):
     """
-    Send an email to No Loop Tech from a given sender with a given message.
+    Send an email from a given sender with a given message.
     
     Parameters:
     senders_email (str): The email address of the sender.

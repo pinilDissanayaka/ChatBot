@@ -4,10 +4,5 @@ llm:
 
 embedding_model: text-embedding-3-large
 
-vector_store_path: vector/nolooptech.com_vector_store
-
-web_name : nolooptech.com
-
-
 
 

@@ -12,7 +12,6 @@ from utils import AgentState, llm, agent_prompt_template, generate_prompt_templa
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
-from langchain_core.runnables.config import RunnableConfig
 
 
 
@@ -22,7 +21,7 @@ memory=MemorySaver()
 
 
 ### Edges
-def build_graph(vector_store_path, web_name):
+def build_graph(web_name):
 
     """
     Build a graph to generate a response to a user question.
@@ -51,7 +50,7 @@ def build_graph(vector_store_path, web_name):
     Returns:
         StateGraph: A graph representing the state machine
     """
-    retriever_tool=get_retriever_tool(vector_store_path=vector_store_path, web_name=web_name)
+    retriever_tool=get_retriever_tool(web_name=web_name)
     
     tools=[retriever_tool, contact]
 
@@ -132,6 +131,7 @@ def build_graph(vector_store_path, web_name):
         agent_prompt = ChatPromptTemplate.from_messages(agent_prompt_template)
         
         
+        
         messages = state["messages"]
         
         model = llm.bind_tools(tools)
@@ -141,6 +141,7 @@ def build_graph(vector_store_path, web_name):
             agent_prompt |
             model
         )
+        
         
         response = agent_chain.invoke({"question": messages})
         # We return a list, because this will get added to the existing list
@@ -197,8 +198,6 @@ def build_graph(vector_store_path, web_name):
         docs = last_message.content
 
         # Prompt
-        from langchain.prompts import ChatPromptTemplate
-
         prompt = ChatPromptTemplate.from_messages(generate_prompt_template)
 
         # Chain

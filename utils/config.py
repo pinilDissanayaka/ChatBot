@@ -26,9 +26,6 @@ class AgentState(TypedDict):
 
 
 
-vector_store_path= config['vector_store_path']
-web_name= config['web_name']
-
 
 agent_prompt_template= [("system", 
                   "You are **Friday**, an intelligent and friendly AI assistant. "
@@ -39,6 +36,8 @@ agent_prompt_template= [("system",
                   "If you don't know the answer, say you don't know — don't make things up. "
                   "Keep responses clear, concise, engaging, and within three sentences. "
                   "Ask relevant follow-up questions or show curiosity if it fits the conversation."
+                    "Answer the users questions"
+
               ),
               ("human", "Question: {QUESTION}")
               ]
@@ -52,5 +51,6 @@ generate_prompt_template= [("system",
                 "If you don't know the answer, be honest and say you don't know — never make things up. "
                 "Keep responses clear, concise, and engaging — no more than three sentences. "
                 "Ask follow-up questions or show curiosity if it feels natural."
+                "Answer the users questions based on the context provided."
             ),
             ("human", "Question: {question}\nContext: {context}")]
