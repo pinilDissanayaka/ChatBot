@@ -15,8 +15,6 @@ from langchain_core.runnables import RunnablePassthrough
 
 
 
-
-
 memory=MemorySaver()
 
 
@@ -202,7 +200,7 @@ def build_graph(web_name):
 
         # Chain
         rag_chain = prompt | llm | StrOutputParser()
-
+        
         # Run
         response = rag_chain.invoke({"context": docs, "question": question})
         return {"messages": [response]}

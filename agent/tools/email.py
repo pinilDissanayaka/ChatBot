@@ -18,7 +18,7 @@ def contact(senders_email:str, message:str):
         # start TLS for security
         s.starttls()
         # Authentication
-        s.login("pinildissanayka@gmail.com", "Dissanayaka.1")
+        s.login("pinildissanayka@gmail.com", "")
         # sending the mail
         s.sendmail(senders_email, "pinildissanayka@gmail.com" , message)
         # terminating the session

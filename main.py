@@ -4,6 +4,7 @@ import uvicorn
 from dotenv import load_dotenv, find_dotenv
 from routes.chat import chat_router
 from routes.files import file_upload_router
+from database import Base, engine
 
 
 import sys
@@ -35,6 +36,7 @@ async def health_check():
 
 if __name__ == "__main__":
     load_dotenv(find_dotenv())
+    Base.metadata.create_all(bind=engine)
     uvicorn.run(app, port=8070)
     
     
