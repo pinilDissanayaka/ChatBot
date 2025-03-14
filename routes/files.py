@@ -18,10 +18,23 @@ async def upload_files(
     text: Optional[str] = None,
     web_url: Optional[str] = None,
 ):
+    """
+    Upload files and create a vector store
+
+    Args:
+        name (str): Name of the vector store
+        files (List[UploadFile], optional): List of files to upload. Defaults to None.
+        text (str, optional): Text to process. Defaults to None.
+        web_url (str, optional): URL to scrape. Defaults to None.
+
+    Returns:
+        dict: A dictionary containing the message, saved files and web name
+    """
+
     file_object=File()
     file_paths=file_object.save_uploaded_files(files=files)
     loader = Loader(file_paths=file_paths, base_url=web_url, clean_text=text) 
-    content = loader.load()
+    content = await loader.load()
     file_object.cleanup_temp_files()
     
     markdown_file_path=file_object.write_markdown_file(file_name=name, content=content)

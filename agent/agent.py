@@ -1,4 +1,5 @@
 from typing import Literal
+from httpx import get
 from langchain_core.messages import HumanMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
@@ -12,6 +13,8 @@ from utils import AgentState, llm, agent_prompt_template, generate_prompt_templa
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
+from langchain_community.callbacks import get_openai_callback
+
 
 
 
@@ -52,7 +55,7 @@ def build_graph(web_name):
     
     tools=[retriever_tool, contact]
 
-    def grade_documents(state) -> Literal["generate", "rewrite"]:
+    async def grade_documents(state) -> Literal["generate", "rewrite"]:
         """
         Determines whether the retrieved documents are relevant to the question.
 
@@ -70,8 +73,6 @@ def build_graph(web_name):
             """Binary score for relevance check."""
 
             binary_score: str = Field(description="Relevance score 'yes' or 'no'")
-
-        # LLM
 
         # LLM with tool and validation
         llm_with_tool = llm.with_structured_output(grade)
@@ -95,7 +96,7 @@ def build_graph(web_name):
         question = messages[0].content
         docs = last_message.content
 
-        scored_result = chain.invoke({"question": question, "context": docs})
+        scored_result = await chain.ainvoke({"question": question, "context": docs})
 
         score = scored_result.binary_score
 
@@ -112,7 +113,7 @@ def build_graph(web_name):
     ### Nodes
 
 
-    def agent(state):
+    async def agent(state):
         """
         Invokes the agent model to generate a response based on the current state. Given
         the question, it will decide to retrieve using the retriever tool, or simply end.
@@ -141,12 +142,12 @@ def build_graph(web_name):
         )
         
         
-        response = agent_chain.invoke({"question": messages})
+        response = await agent_chain.ainvoke({"question": messages})
         # We return a list, because this will get added to the existing list
         return {"messages": [response]}
 
 
-    def rewrite(state):
+    async def rewrite(state):
         """
         Transform the query to produce a better question.
 
@@ -174,11 +175,11 @@ def build_graph(web_name):
     ]
 
         # Grader
-        response = llm.invoke(msg)
+        response = await llm.ainvoke(msg)
         return {"messages": [response]}
 
 
-    def generate(state):
+    async def generate(state):
         """
         Generate answer
 
@@ -199,10 +200,10 @@ def build_graph(web_name):
         prompt = ChatPromptTemplate.from_messages(generate_prompt_template)
 
         # Chain
-        rag_chain = prompt | llm | StrOutputParser()
+        generate_chain = prompt | llm | StrOutputParser()
         
         # Run
-        response = rag_chain.invoke({"context": docs, "question": question})
+        response = await generate_chain.ainvoke({"context": docs, "question": question})
         return {"messages": [response]}
 
 
@@ -266,16 +267,21 @@ async def get_chat_response(graph, question: str, thread_id: str = "1"):
         
         config = {"configurable": {"thread_id": thread_id}}
 
-            
-        async for chunk in graph.astream(
-            {
-                "messages": [("user", question)],
-            },
-            config=config,
-            stream_mode="values",        
-        ):
-            if chunk["messages"]:
-                responses.append(chunk["messages"][-1].content)
+        with get_openai_callback() as cb:    
+            async for chunk in graph.astream(
+                {
+                    "messages": [("user", question)],
+                },
+                config=config,
+                stream_mode="values",        
+            ):
+                if chunk["messages"]:
+                    responses.append(chunk["messages"][-1].content)
+        
+        print(f"Total Tokens: {cb.total_tokens}")
+        print(f"Prompt Tokens: {cb.prompt_tokens}")
+        print(f"Completion Tokens: {cb.completion_tokens}")
+        print(f"Total Cost (USD): ${cb.total_cost}")
         
         # Get final response
         final_response = responses[-1] if responses else "Please Try again later"

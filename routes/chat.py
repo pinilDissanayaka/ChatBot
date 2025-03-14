@@ -12,6 +12,16 @@ chat_router = APIRouter(
 
 @chat_router.post("/", response_model=ChatResponse)
 async def chat(request: ChatRequest):
+    """
+    Given a chat request, generate a response using the agent model.
+
+    Args:
+        request (ChatRequest): The chat request
+
+    Returns:
+        ChatResponse: The generated response
+    """
+    
     try:
         graph=build_graph(web_name=request.name)
         final_response=await get_chat_response(graph=graph, question=request.message, thread_id=request.thread_id)
