@@ -7,10 +7,11 @@ from langchain_community.document_loaders import (
     TextLoader,
     JSONLoader,
     UnstructuredMarkdownLoader,
-    UnstructuredPowerPointLoader
+    UnstructuredPowerPointLoader,
+    Docx2txtLoader
+
 )
 from typing import List
-from functools import partial
 
 
 class Loader(object):
@@ -47,6 +48,11 @@ class Loader(object):
         loop = asyncio.get_event_loop()
         loader = UnstructuredMarkdownLoader(file_path)
         return await loop.run_in_executor(None, loader.load)
+    
+    async def __docx_loader(self, file_path: str) -> list:
+        loop = asyncio.get_event_loop()
+        loader = Docx2txtLoader(file_path)
+        return await loop.run_in_executor(None, loader.load)
 
     async def __load_file(self) -> List[list]:
         tasks = []
@@ -64,6 +70,8 @@ class Loader(object):
                 tasks.append(self.__json_loader(file_path))
             elif file_path_lower.endswith(".md"):
                 tasks.append(self.__markdown_loader(file_path))
+            elif file_path_lower.endswith(".docx"):
+                tasks.append(self.__docx_loader(file_path))
             else:
                 raise ValueError(f"Unsupported file type: {file_path}")
 

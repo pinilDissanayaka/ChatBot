@@ -14,6 +14,8 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_community.callbacks import get_openai_callback
+from fastapi.responses import StreamingResponse
+
 
 
 
@@ -263,8 +265,7 @@ async def get_chat_response(graph, question: str, thread_id: str = "1"):
     """
 
     try:
-        responses = []
-        
+        response= ""        
         config = {"configurable": {"thread_id": thread_id}}
 
         with get_openai_callback() as cb:    
@@ -276,7 +277,7 @@ async def get_chat_response(graph, question: str, thread_id: str = "1"):
                 stream_mode="values",        
             ):
                 if chunk["messages"]:
-                    responses.append(chunk["messages"][-1].content)
+                    response = chunk["messages"][-1].content
         
         print(f"Total Tokens: {cb.total_tokens}")
         print(f"Prompt Tokens: {cb.prompt_tokens}")
@@ -284,7 +285,7 @@ async def get_chat_response(graph, question: str, thread_id: str = "1"):
         print(f"Total Cost (USD): ${cb.total_cost}")
         
         # Get final response
-        final_response = responses[-1] if responses else "Please Try again later"
+        final_response = response if response else "Please Try again later"
         
         return final_response
     
