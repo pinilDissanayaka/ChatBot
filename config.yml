@@ -1,6 +1,6 @@
 llm:
   model: gpt-4o
-  temperature: 0.7
+  temperature: 0.87
 
 embedding_model: text-embedding-3-large
 

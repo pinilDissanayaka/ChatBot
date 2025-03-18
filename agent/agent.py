@@ -1,5 +1,4 @@
 from typing import Literal
-from httpx import get
 from langchain_core.messages import HumanMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
@@ -9,12 +8,12 @@ from langgraph.graph import END, StateGraph, START
 from langgraph.prebuilt import ToolNode
 from agent.tools.retriever_tool import get_retriever_tool
 from agent.tools.email import contact
+from agent.tools.ticketing import issue_ticket
 from utils import AgentState, llm, agent_prompt_template, generate_prompt_template
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_community.callbacks import get_openai_callback
-from fastapi.responses import StreamingResponse
 
 
 

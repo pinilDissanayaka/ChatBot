@@ -40,7 +40,7 @@ class VectorStore:
             persist_directory=store_path,  
         )
         
-        return vector_store.as_retriever()
+        return vector_store.as_retriever(search_kwargs={"k": 1})
     
     
 
