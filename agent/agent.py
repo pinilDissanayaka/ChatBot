@@ -289,6 +289,6 @@ async def get_chat_response(graph, question: str, thread_id: str = "1"):
         return final_response
     
     except Exception as e:
-        return "I'm sorry, something went wrong. Please try again later."
+        return "I'm sorry, something went wrong. Do you like to contact our team?"
     
     
