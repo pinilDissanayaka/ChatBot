@@ -1,5 +1,4 @@
 import asyncio
-from unittest import loader
 import aiohttp
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin

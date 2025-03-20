@@ -112,8 +112,6 @@ def build_graph(web_name):
 
 
     ### Nodes
-
-
     async def agent(state):
         """
         Invokes the agent model to generate a response based on the current state. Given
