@@ -1,10 +1,12 @@
 import asyncio
+from unittest import loader
 import aiohttp
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from langchain_community.document_loaders import (
     PyPDFLoader,
     TextLoader,
+    CSVLoader,
     JSONLoader,
     UnstructuredMarkdownLoader,
     UnstructuredPowerPointLoader,
@@ -36,9 +38,10 @@ class Loader(object):
         return await loop.run_in_executor(None, loader.load)
 
     async def __csv_loader(self, file_path: str) -> list:
-        # Assuming CSV handled as plain text for now
-        return await self.__text_loader(file_path)
-
+        loop=asyncio.get_event_loop()
+        loader = CSVLoader(file_path)
+        return await self.loop.run_in_executor(None, loader.load)
+    
     async def __json_loader(self, file_path: str) -> list:
         loop = asyncio.get_event_loop()
         loader = JSONLoader(file_path)

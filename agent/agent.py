@@ -283,7 +283,6 @@ async def get_chat_response(graph, question: str, thread_id: str = "1"):
         print(f"Completion Tokens: {cb.completion_tokens}")
         print(f"Total Cost (USD): ${cb.total_cost}")
         
-        # Get final response
         final_response = response if response else "Please Try again later"
         
         return final_response
