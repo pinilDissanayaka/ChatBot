@@ -9,11 +9,12 @@ from langgraph.prebuilt import ToolNode
 from agent.tools.retriever_tool import get_retriever_tool
 from agent.tools.email import contact
 from agent.tools.ticketing import issue_ticket
-from utils import AgentState, llm, agent_prompt_template, generate_prompt_template
+from utils import AgentState, llm, agent_prompt_template, generate_prompt_template, translate_text_to_english, translate_text_to_src
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_community.callbacks import get_openai_callback
+
 
 
 
@@ -264,6 +265,7 @@ async def get_chat_response(graph, question: str, thread_id: str = "1"):
     try:
         response= ""        
         config = {"configurable": {"thread_id": thread_id}}
+        question, language = await translate_text_to_english(text=question)
 
         with get_openai_callback() as cb:    
             async for chunk in graph.astream(
@@ -275,6 +277,8 @@ async def get_chat_response(graph, question: str, thread_id: str = "1"):
             ):
                 if chunk["messages"]:
                     response = chunk["messages"][-1].content
+                    print(language)
+                    response = response if language == "en" else await translate_text_to_src(text=response, src=language)
         
         print(f"Total Tokens: {cb.total_tokens}")
         print(f"Prompt Tokens: {cb.prompt_tokens}")

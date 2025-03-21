@@ -2,3 +2,4 @@ from .config import llm, AgentState, embeddings, generate_prompt_template, agent
 from .vector_store import VectorStore
 from .loaders import Loader
 from .file import File
+from .translate import translate_text_to_english, translate_text_to_src
