@@ -288,8 +288,13 @@ async def get_chat_response(graph, question: str, thread_id: str = "1"):
         print(f"Completion Tokens: {cb.completion_tokens}")
         print(f"Total Cost (USD): ${cb.total_cost}")
         
-        final_response = response if response else "Please Try again later"
-        
+        if response:
+            final_response= response
+        else:
+            if language != "en":
+                final_response = await translate_text(text="Please Try again later", src=language)
+            else:
+                final_response = "Please Try again later"        
         return final_response
     
     except Exception as e:
