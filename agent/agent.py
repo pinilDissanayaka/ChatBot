@@ -14,6 +14,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_community.callbacks import get_openai_callback
+import logging
 
 
 
