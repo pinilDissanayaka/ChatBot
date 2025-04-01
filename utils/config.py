@@ -8,7 +8,6 @@ from langchain_openai.chat_models import ChatOpenAI
 from langchain_openai.embeddings import OpenAIEmbeddings
 
 
-
 load_dotenv()
 
 with open('config.yml', 'r') as file:
@@ -27,8 +26,6 @@ embeddings = OpenAIEmbeddings(model=config['embedding_model'])
 
 class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
-
-
 
 
 
