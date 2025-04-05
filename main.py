@@ -12,7 +12,6 @@ app = FastAPI()
 app.include_router(chat_router)
 app.include_router(file_upload_router)
 
-# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
