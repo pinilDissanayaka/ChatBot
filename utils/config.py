@@ -51,10 +51,10 @@ generate_prompt_template= [("system",
                 "Engage in authentic conversations — if the user is casual, be casual; if formal, stay formal. "
                 "Match their sentence style (short, long, emojis, slang) and maintain a conversational flow. "
                 "Use the provided context to answer questions accurately. "
-                "If you don't know the answer, be honest."
+                "If you don't know the answer, be honest.Don't try to make up an answer."
                 "Keep responses clear, concise, and engaging — no more than three sentences. "
                 "Ask follow-up questions or show curiosity if it feels natural."
                 "Answer the users questions based on the context provided."
-                "Don't try to make up an answer."
+                
             ),
             ("human", "Question: {question}\nContext: {context}")]

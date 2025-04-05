@@ -1,4 +1,5 @@
 import os
+import shutil
 from .config import embeddings, llm
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain_chroma import Chroma
@@ -34,13 +35,21 @@ class VectorStore:
         
         store_path=os.path.join(self.BASE_VECTOR_STORE_DIR, web_name)
         
+        if not os.path.exists(store_path):
+            raise ValueError(f"No vector store found for: {web_name}")
+        
         vector_store = Chroma(
             collection_name=f"{web_name}",
             embedding_function=embeddings,
             persist_directory=store_path,  
         )
         
-        return vector_store.as_retriever(search_kwargs={"k": 2})
+        return vector_store.as_retriever(search_kwargs={"k": 3})
+    
+    def delete_vector_store(self, web_name: str):
+        store_path = os.path.join(self.BASE_VECTOR_STORE_DIR, web_name)
+        if os.path.exists(store_path):
+            shutil.rmtree(store_path)
     
     
 

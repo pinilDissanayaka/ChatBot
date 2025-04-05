@@ -14,8 +14,8 @@ def get_retriever_tool(web_name):
     """
     retriever_tool = create_retriever_tool(
         VectorStore().get_vector_store(web_name=web_name),
-        f"retrieve_about_Website",
-        f"Search and return information about retrieve_about {web_name} Website.",
+        name=f"retrieve_{web_name}_info",
+        description=f"Use this tool to search and answer questions using knowledge extracted from the website '{web_name}'."
     )
 
     

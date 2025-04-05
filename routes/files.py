@@ -52,12 +52,8 @@ async def upload_files(
     await run_sync(file_object.cleanup_temp_files)
     #file_object.cleanup_temp_files()
     
-    
-    
     # Save content as markdown (assumed to be sync)
     markdown_file_path=file_object.write_markdown_file(file_name=name, content=content)
-     
-     
      
     # Create vector store from content (blocking I/O + CPU-bound)
     web_name = await run_sync(VectorStore().create_vector_store, name, content)

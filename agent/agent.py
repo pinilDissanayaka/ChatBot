@@ -127,7 +127,6 @@ def build_graph(web_name):
         agent_prompt = ChatPromptTemplate.from_messages(agent_prompt_template)
         
         
-        
         messages = state["messages"]
         
         model = llm.bind_tools(tools)
@@ -296,6 +295,39 @@ async def get_chat_response(graph, question: str, thread_id: str = "1"):
     
     except Exception as e:
         print(e)
-        return "I'm sorry, something went wrong. Do you like to contact our team?"
+        try:
+            # Step 1: Build fallback prompt and agent chain
+            fallback_prompt = ChatPromptTemplate.from_messages([
+                ("system", "A user faced a system error and wants help. Trigger the contact tool."),
+                ("human", "There was an error in processing my request. Can you contact support for me?")
+            ])
+            
+            model_with_tool = llm.bind_tools([contact])
+            agent_chain = fallback_prompt | model_with_tool
+
+            # Step 2: Call the fallback chain
+            response = await agent_chain.ainvoke({})
+
+            # Step 3: Translate if needed
+            contact_response = response.content if language == "en" else await translate_text(text=response.content, src=language)
+
+            # Step 4: Save to memory (simulates continuation of the conversation)
+            await memory.aput(
+                thread_id,
+                {
+                    "messages": [
+                        ("user", "There was an error in processing my request. Can you contact support for me?"),
+                        ("assistant", contact_response)
+                    ]
+                }
+            )
+
+            return contact_response
+
+        except Exception as inner_e:
+            print("Tool fallback also failed:", inner_e)
+            final_fallback = "Please try again later." if language == "en" else await translate_text(text="Please try again later", src=language)
+            return final_fallback
+        
     
     
