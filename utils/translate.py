@@ -1,9 +1,19 @@
+import os
+from dotenv import load_dotenv, find_dotenv
 from googletrans import Translator
+import redis.asyncio as redis
 
 
-async def detect(text:str):
+load_dotenv(find_dotenv())
+
+# Reuse a single Translator instance across calls
+translator = Translator()
+
+
+
+async def detect(text: str) -> str:
     """
-    Detects the language of the given text.
+    Detects the language of the given text using googletrans and caches the result in Redis.
 
     Args:
         text (str): The text whose language needs to be detected.
@@ -11,10 +21,25 @@ async def detect(text:str):
     Returns:
         str: The detected language code (e.g., 'en' for English).
     """
+    try:
+        redis=await redis.from_url(os.environ["REDIS_URL"], encoding="utf-8", decode_responses=True)
+        key = f"lang:{text}"
 
-    async with Translator() as translator:
-        result = await translator.detect(text)
-        return result.lang
+        # Try to get from Redis
+        cached_lang = await redis.get(key)
+        if cached_lang:
+            return cached_lang
+
+        # Detect and cache
+        detected_lang = translator.detect(text).lang
+        await redis.set(key, detected_lang, ex=3600)  # Cache for 1 hour
+        return detected_lang
+
+    except Exception as e:
+        print(f"[Detect Error] {e}")
+        return "en"  # Default to English on failure
+    
+
 
 
 async def translate_text(text:str, src:str=None):
@@ -30,12 +55,26 @@ async def translate_text(text:str, src:str=None):
     """
     
     if src:
-        async with Translator() as translator:
-            result = await translator.translate(text, dest=src)
-            return result.text
+        result = await translator.translate(text, dest=src)
+        return result.text
     else:
-        async with Translator() as translator:
-            result = await translator.translate(text)
-            return result.text, result.src
-
+        result = await translator.translate(text)
+        return result.text, result.src
         
+        
+
+
+async def get_cached_language(question: str) -> str:
+    """Check if the language is cached in Redis, otherwise detect it."""
+    key = f"lang:{question}"
+    
+    
+    # Check if the language is already cached
+    cached_lang = await redis.get(key)
+    if cached_lang:
+        return cached_lang.decode("utf-8")  # decode from bytes to string
+
+    # If not cached, detect the language and store it in Redis
+    detected_lang = await detect(question)
+    await redis.set(key, detected_lang, ex=3600)  # Cache for 1 hour
+    return detected_lang

@@ -20,7 +20,7 @@ import logging
 memory=MemorySaver()
 
 
-### Edges
+
 def build_graph(web_name):
 
     """
@@ -296,7 +296,7 @@ async def get_chat_response(graph, question: str, thread_id: str = "1"):
     except Exception as e:
         print(e)
         try:
-            # Step 1: Build fallback prompt and agent chain
+            # Build fallback prompt and agent chain
             fallback_prompt = ChatPromptTemplate.from_messages([
                 ("system", "A user faced a system error and wants help. Trigger the contact tool."),
                 ("human", "There was an error in processing my request. Can you contact support for me?")
@@ -305,13 +305,13 @@ async def get_chat_response(graph, question: str, thread_id: str = "1"):
             model_with_tool = llm.bind_tools([contact])
             agent_chain = fallback_prompt | model_with_tool
 
-            # Step 2: Call the fallback chain
+            # Call the fallback chain
             response = await agent_chain.ainvoke({})
 
-            # Step 3: Translate if needed
+            # Translate if needed
             contact_response = response.content if language == "en" else await translate_text(text=response.content, src=language)
 
-            # Step 4: Save to memory (simulates continuation of the conversation)
+            # Save to memory (simulates continuation of the conversation)
             await memory.aput(
                 thread_id,
                 {
@@ -323,7 +323,6 @@ async def get_chat_response(graph, question: str, thread_id: str = "1"):
             )
 
             return contact_response
-
         except Exception as inner_e:
             print("Tool fallback also failed:", inner_e)
             final_fallback = "Please try again later." if language == "en" else await translate_text(text="Please try again later", src=language)
