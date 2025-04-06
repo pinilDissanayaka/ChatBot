@@ -65,7 +65,16 @@ async def translate_text(text:str, src:str=None):
 
 
 async def get_cached_language(question: str) -> str:
-    """Check if the language is cached in Redis, otherwise detect it."""
+    """
+    Checks if the language for a given question is cached in Redis, and if not, detects it and caches it.
+
+    Args:
+        question (str): The question whose language needs to be determined.
+
+    Returns:
+        str: The ISO 639-1 language code of the question (e.g., 'en' for English).
+    """
+
     key = f"lang:{question}"
     
     

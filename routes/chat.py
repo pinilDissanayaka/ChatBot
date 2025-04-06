@@ -15,13 +15,24 @@ chat_router = APIRouter(
 
 @lru_cache(maxsize=200)
 def get_cached_graph(web_name: str):
+    """Fetches a graph from cache, or builds it if it doesn't exist
+    
+    Args:
+        web_name (str): The name of the website for which to build the graph
+    
+    Returns:
+        StateGraph: A graph representing the state machine
+    """
+    
     return build_graph(web_name=web_name)
 
 
 
 @chat_router.post("/", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    """Process a chat request and return a streaming response."""
+    """
+    Responds to a user's question using the chatbot state machine
+    """
     try:
         graph = get_cached_graph(web_name=request.name)
         
