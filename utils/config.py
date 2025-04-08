@@ -19,6 +19,11 @@ llm = ChatOpenAI(
     temperature=config['llm']['temperature'],
 )
 
+fast_llm=ChatOpenAI(
+    model=config['fast_llm']['model'],
+    temperature=config['fast_llm']['temperature'],
+)
+
 
 
 embeddings = OpenAIEmbeddings(model=config['embedding_model'])

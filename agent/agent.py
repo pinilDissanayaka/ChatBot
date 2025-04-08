@@ -9,16 +9,13 @@ from langgraph.prebuilt import ToolNode
 from agent.tools.retriever_tool import get_retriever_tool
 from agent.tools.email import contact
 from agent.tools.ticketing import issue_ticket
-from utils import AgentState, llm, agent_prompt_template, generate_prompt_template, translate_text, detect
+from utils import AgentState, llm, fast_llm, agent_prompt_template, generate_prompt_template, translate_text, detect
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_community.callbacks import get_openai_callback
- 
 
 memory=MemorySaver()
-
-
 
 def build_graph(web_name):
 
@@ -73,7 +70,7 @@ def build_graph(web_name):
             binary_score: str = Field(description="Relevance score 'yes' or 'no'")
 
         # LLM with tool and validation
-        llm_with_tool = llm.with_structured_output(grade)
+        llm_with_tool = fast_llm.with_structured_output(grade)
 
         # Prompt
         prompt = PromptTemplate(
@@ -170,7 +167,7 @@ def build_graph(web_name):
     ]
 
         # Grader
-        response = await llm.ainvoke(msg)
+        response = await fast_llm.ainvoke(msg)
         return {"messages": [response]}
 
 
@@ -209,7 +206,7 @@ def build_graph(web_name):
 
     # Define the nodes we will cycle between
     workflow.add_node("agent", agent)  # agent
-    retrieve = ToolNode([retriever_tool, contact])
+    retrieve = ToolNode([retriever_tool, contact]) # tool node
     workflow.add_node("retrieve", retrieve)  # retrieval
     workflow.add_node("rewrite", rewrite)  # Re-writing the question
     workflow.add_node(
@@ -326,6 +323,3 @@ async def get_chat_response(graph, question: str, thread_id: str = "1"):
             print("Tool fallback also failed:", inner_e)
             final_fallback = "Please try again later." if language == "en" else await translate_text(text="Please try again later", src=language)
             return final_fallback
-        
-    
-    
