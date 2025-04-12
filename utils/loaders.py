@@ -203,7 +203,6 @@ class Loader(object):
 
             except Exception as e:
                 print(f"Error scraping {url}: {e}")
-
         async with aiohttp.ClientSession() as session:
             await __recursive_scrape(session, url)
 
