@@ -1,8 +1,11 @@
 import smtplib
+from langchain_core.tools import tool
 
+@tool
 def contact(senders_email:str, message:str):
     """
     Send an email from a given sender with a given message.
+    If the Agent dont know the specific answer, it will use this tool.
     
     Parameters:
     senders_email (str): The email address of the sender.

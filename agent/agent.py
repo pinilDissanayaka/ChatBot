@@ -8,17 +8,15 @@ from langgraph.graph import END, StateGraph, START
 from langgraph.prebuilt import ToolNode
 from agent.tools.retriever_tool import get_retriever_tool
 from agent.tools.email import contact
-from utils import AgentState, llm, agent_prompt_template, generate_prompt_template
+from agent.tools.ticketing import issue_ticket
+from utils import AgentState, llm, fast_llm, agent_prompt_template, generate_prompt_template, translate_text, detect
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
-
-
+from langchain_community.callbacks import get_openai_callback
 
 memory=MemorySaver()
 
-
-### Edges
 def build_graph(web_name):
 
     """
@@ -52,7 +50,7 @@ def build_graph(web_name):
     
     tools=[retriever_tool, contact]
 
-    def grade_documents(state) -> Literal["generate", "rewrite"]:
+    async def grade_documents(state) -> Literal["generate", "rewrite"]:
         """
         Determines whether the retrieved documents are relevant to the question.
 
@@ -71,10 +69,8 @@ def build_graph(web_name):
 
             binary_score: str = Field(description="Relevance score 'yes' or 'no'")
 
-        # LLM
-
         # LLM with tool and validation
-        llm_with_tool = llm.with_structured_output(grade)
+        llm_with_tool = fast_llm.with_structured_output(grade)
 
         # Prompt
         prompt = PromptTemplate(
@@ -95,7 +91,7 @@ def build_graph(web_name):
         question = messages[0].content
         docs = last_message.content
 
-        scored_result = chain.invoke({"question": question, "context": docs})
+        scored_result = await chain.ainvoke({"question": question, "context": docs})
 
         score = scored_result.binary_score
 
@@ -110,9 +106,7 @@ def build_graph(web_name):
 
 
     ### Nodes
-
-
-    def agent(state):
+    async def agent(state):
         """
         Invokes the agent model to generate a response based on the current state. Given
         the question, it will decide to retrieve using the retriever tool, or simply end.
@@ -129,7 +123,6 @@ def build_graph(web_name):
         agent_prompt = ChatPromptTemplate.from_messages(agent_prompt_template)
         
         
-        
         messages = state["messages"]
         
         model = llm.bind_tools(tools)
@@ -141,12 +134,12 @@ def build_graph(web_name):
         )
         
         
-        response = agent_chain.invoke({"question": messages})
+        response = await agent_chain.ainvoke({"question": messages})
         # We return a list, because this will get added to the existing list
         return {"messages": [response]}
 
 
-    def rewrite(state):
+    async def rewrite(state):
         """
         Transform the query to produce a better question.
 
@@ -174,11 +167,11 @@ def build_graph(web_name):
     ]
 
         # Grader
-        response = llm.invoke(msg)
+        response = await fast_llm.ainvoke(msg)
         return {"messages": [response]}
 
 
-    def generate(state):
+    async def generate(state):
         """
         Generate answer
 
@@ -199,10 +192,10 @@ def build_graph(web_name):
         prompt = ChatPromptTemplate.from_messages(generate_prompt_template)
 
         # Chain
-        rag_chain = prompt | llm | StrOutputParser()
+        generate_chain = prompt | llm | StrOutputParser()
         
         # Run
-        response = rag_chain.invoke({"context": docs, "question": question})
+        response = await generate_chain.ainvoke({"context": docs, "question": question})
         return {"messages": [response]}
 
 
@@ -213,7 +206,7 @@ def build_graph(web_name):
 
     # Define the nodes we will cycle between
     workflow.add_node("agent", agent)  # agent
-    retrieve = ToolNode([retriever_tool, contact])
+    retrieve = ToolNode([retriever_tool, contact]) # tool node
     workflow.add_node("retrieve", retrieve)  # retrieval
     workflow.add_node("rewrite", rewrite)  # Re-writing the question
     workflow.add_node(
@@ -262,27 +255,71 @@ async def get_chat_response(graph, question: str, thread_id: str = "1"):
     """
 
     try:
-        responses = []
-        
+        response= ""        
         config = {"configurable": {"thread_id": thread_id}}
-
-            
-        async for chunk in graph.astream(
-            {
-                "messages": [("user", question)],
-            },
-            config=config,
-            stream_mode="values",        
-        ):
-            if chunk["messages"]:
-                responses.append(chunk["messages"][-1].content)
         
-        # Get final response
-        final_response = responses[-1] if responses else "Please Try again later"
+        language= await detect(question)
         
+        if language != "en":
+            question, language = await translate_text(text=question)
+        
+        with get_openai_callback() as cb:    
+            async for chunk in graph.astream(
+                {
+                    "messages": [("user", question)],
+                },
+                config=config,
+                stream_mode="values",        
+            ):
+                if chunk["messages"]:
+                    response = chunk["messages"][-1].content
+                    response = response if language == "en" else await translate_text(text=response, src=language)
+        
+        print(f"Total Tokens: {cb.total_tokens}")
+        print(f"Prompt Tokens: {cb.prompt_tokens}")
+        print(f"Completion Tokens: {cb.completion_tokens}")
+        print(f"Total Cost (USD): ${cb.total_cost}")
+        
+        if response:
+            final_response= response
+        else:
+            if language != "en":
+                final_response = await translate_text(text="Please Try again later", src=language)
+            else:
+                final_response = "Please Try again later"        
         return final_response
     
     except Exception as e:
-        return "I'm sorry, something went wrong. Please try again later."
-    
-    
+        print(e)
+        try:
+            # Build fallback prompt and agent chain
+            fallback_prompt = ChatPromptTemplate.from_messages([
+                ("system", "A user faced a system error and wants help. Trigger the contact tool."),
+                ("human", "There was an error in processing my request. Can you contact support for me?")
+            ])
+            
+            model_with_tool = llm.bind_tools([contact])
+            agent_chain = fallback_prompt | model_with_tool
+
+            # Call the fallback chain
+            response = await agent_chain.ainvoke({})
+
+            # Translate if needed
+            contact_response = response.content if language == "en" else await translate_text(text=response.content, src=language)
+
+            # Save to memory (simulates continuation of the conversation)
+            await memory.aput(
+                thread_id,
+                {
+                    "messages": [
+                        ("user", "There was an error in processing my request. Can you contact support for me?"),
+                        ("assistant", contact_response)
+                    ]
+                }
+            )
+
+            return contact_response
+        except Exception as inner_e:
+            print("Tool fallback also failed:", inner_e)
+            final_fallback = "Please try again later." if language == "en" else await translate_text(text="Please try again later", src=language)
+            return final_fallback
