@@ -5,13 +5,9 @@ from dotenv import load_dotenv, find_dotenv
 from routes.chat import chat_router
 from routes.files import file_upload_router
 from database import Base, engine
-from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI()
 
-instrumentator = Instrumentator()
-
-instrumentator.instrument(app).expose(app)
 
 app.include_router(chat_router)
 app.include_router(file_upload_router)
@@ -24,14 +20,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/")
 async def health_check():
     return {"status": "Server running"}
 
-
-
-
 if __name__ == "__main__":
     load_dotenv(find_dotenv())
     Base.metadata.create_all(bind=engine)
-    uvicorn.run(app, port=8070)
+    uvicorn.run(app, host="0.0.0.0", port=8070, workers=4)  # Enable multiple workers

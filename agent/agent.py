@@ -273,7 +273,8 @@ async def get_chat_response(graph, question: str, thread_id: str = "1"):
             ):
                 if chunk["messages"]:
                     response = chunk["messages"][-1].content
-                    response = response if language == "en" else await translate_text(text=response, src=language)
+                    if language != "en":
+                        response = await translate_text(text=response, src=language)
         
         print(f"Total Tokens: {cb.total_tokens}")
         print(f"Prompt Tokens: {cb.prompt_tokens}")

@@ -9,6 +9,13 @@ load_dotenv(find_dotenv())
 # Reuse a single Translator instance across calls
 translator = Translator()
 
+# Create a Redis connection pool
+redis_pool = redis.ConnectionPool.from_url(
+    os.environ["REDIS_URL"], encoding="utf-8", decode_responses=True
+)
+
+async def get_redis_client():
+    return redis.Redis(connection_pool=redis_pool)
 
 
 async def detect(text: str) -> str:
@@ -22,17 +29,17 @@ async def detect(text: str) -> str:
         str: The detected language code (e.g., 'en' for English).
     """
     try:
-        redis=await redis.from_url(os.environ["REDIS_URL"], encoding="utf-8", decode_responses=True)
+        redis_client = await get_redis_client()
         key = f"lang:{text}"
 
         # Try to get from Redis
-        cached_lang = await redis.get(key)
+        cached_lang = await redis_client.get(key)
         if cached_lang:
             return cached_lang
 
         # Detect and cache
         detected_lang = translator.detect(text).lang
-        await redis.set(key, detected_lang, ex=3600)  # Cache for 1 hour
+        await redis_client.set(key, detected_lang, ex=3600)  # Cache for 1 hour
         return detected_lang
 
     except Exception as e:
@@ -77,13 +84,14 @@ async def get_cached_language(question: str) -> str:
 
     key = f"lang:{question}"
     
+    redis_client = await get_redis_client()
     
     # Check if the language is already cached
-    cached_lang = await redis.get(key)
+    cached_lang = await redis_client.get(key)
     if cached_lang:
-        return cached_lang.decode("utf-8")  # decode from bytes to string
+        return cached_lang
 
     # If not cached, detect the language and store it in Redis
     detected_lang = await detect(question)
-    await redis.set(key, detected_lang, ex=3600)  # Cache for 1 hour
+    await redis_client.set(key, detected_lang, ex=3600)  # Cache for 1 hour
     return detected_lang

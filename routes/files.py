@@ -5,7 +5,7 @@ from utils import Loader, File, VectorStore
 from typing import List, Optional
 from database import session, Bot
 from utils import run_sync
-
+from fastapi.concurrency import run_in_threadpool
 
 
 file_upload_router = APIRouter(
@@ -37,8 +37,7 @@ async def upload_files(
     
     
     # Save uploaded files (assumed to be sync)
-    file_paths = await run_sync(file_object.save_uploaded_files, files=files)
-    #file_paths=file_object.save_uploaded_files(files=files)
+    file_paths = await run_in_threadpool(file_object.save_uploaded_files, files=files)
     
     
     
@@ -49,15 +48,13 @@ async def upload_files(
     
     
     # Clean up temp files (assumed to be sync)
-    await run_sync(file_object.cleanup_temp_files)
-    #file_object.cleanup_temp_files()
+    await run_in_threadpool(file_object.cleanup_temp_files)
     
     # Save content as markdown (assumed to be sync)
     markdown_file_path=file_object.write_markdown_file(file_name=name, content=content)
      
     # Create vector store from content (blocking I/O + CPU-bound)
-    web_name = await run_sync(VectorStore().create_vector_store, name, content)
-    #web_name=VectorStore().create_vector_store(web_name=name, content=content)
+    web_name = await run_in_threadpool(VectorStore().create_vector_store, name, content)
     
     
     
